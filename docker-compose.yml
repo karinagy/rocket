@@ -1,0 +1,50 @@
+version: '3.3'
+services:
+
+  postgres:
+    image: postgres:latest
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    env_file:
+      - db.env
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    command: celery -A rocketdata_test worker -l info
+    volumes:
+      - .:/app
+    environment:
+      - .env
+    depends_on:
+      - redis
+      - django
+
+  celery-beat:
+    build: .
+    command: celery -A rocketdata_test beat -l INFO
+    volumes:
+      - .:/app
+    environment:
+      - .env
+    depends_on:
+      - redis
+      - django
+
+  django:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - .env
+    command: sh ./run.sh
+
